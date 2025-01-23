@@ -1,0 +1,11 @@
+# Remove ".template" from the extension of this file.
+# Change the information below as it fits your system.
+
+[common]
+sshkeypath="/path/to/sshkey"
+
+# For each target, define ssh settings here.
+[targets.targetnamecomeshere]
+    host="ip.address.of.target"
+    port="22"
+    user="username"
