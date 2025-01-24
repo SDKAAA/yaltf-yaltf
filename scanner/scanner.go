@@ -95,7 +95,7 @@ func scanTarget(name string, target config.Target, resultsCh chan models.SingleR
 	licenseInfo := make(models.LicenseInfo)
 
 	switch targetOS := getTargetOS(client); targetOS {
-	case "fedora", "opensuse-leap", "centos":
+	case "fedora", "opensuse-leap", "centos", "rhel", "rocky":
 		output, err := runCommand(client, `rpm -qa --queryformat "%{NAME} %{LICENSE}\n"`)
 
 		if err != nil {
