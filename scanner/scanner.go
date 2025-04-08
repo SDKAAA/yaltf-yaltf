@@ -7,6 +7,7 @@
 package scanner
 
 import (
+	"fmt"
 	"log/slog"
 	"net"
 	"os"
@@ -26,25 +27,29 @@ type Scanner struct {
 	Targets map[string]config.Target
 }
 
+var wg sync.WaitGroup
+var resultsCh chan models.SingleResult
+var errorsCh chan models.SingleError
+
 // Scan execute scan
 func (s Scanner) Scan() error {
-	var wg sync.WaitGroup
-
 	scanResult := models.ScanResult{
 		Version:   config.Version,
 		ScannedAt: time.Now().Format("2006-01-02T15:04:05"),
 		Results:   make(models.LicenseInfos),
+		Errors:    make(models.Errors),
 	}
 
-	resultsCh := make(chan models.SingleResult, len(s.Targets))
-
-	wg.Add(1)
-	go s.collectResults(&scanResult, resultsCh, &wg)
+	resultsCh = make(chan models.SingleResult, len(s.Targets))
+	errorsCh = make(chan models.SingleError, len(s.Targets))
 
 	for name, target := range s.Targets {
 		wg.Add(1)
-		go scanTarget(name, target, resultsCh, &wg)
+		go scanTarget(name, target)
 	}
+
+	go s.collectResults(&scanResult)
+	go s.collectErrors(&scanResult)
 
 	wg.Wait()
 
@@ -52,7 +57,7 @@ func (s Scanner) Scan() error {
 	return nil
 }
 
-func scanTarget(name string, target config.Target, resultsCh chan models.SingleResult, wg *sync.WaitGroup) {
+func scanTarget(name string, target config.Target) {
 	defer wg.Done()
 
 	slog.Info("Scanning target.", "name", name)
@@ -96,6 +101,9 @@ func scanTarget(name string, target config.Target, resultsCh chan models.SingleR
 
 	switch targetOS := getTargetOS(client); targetOS {
 	case "fedora", "opensuse-leap", "centos", "rhel", "rocky":
+		message := fmt.Sprintf("Detected OS: %s", targetOS)
+		slog.Info(message)
+
 		output, err := runCommand(client, `rpm -qa --queryformat "%{NAME} %{LICENSE}\n"`)
 
 		if err != nil {
@@ -104,6 +112,12 @@ func scanTarget(name string, target config.Target, resultsCh chan models.SingleR
 		}
 
 		parseRPM(string(output), licenseInfo)
+	default:
+		message := fmt.Sprintf("Unsupported OS: %s", targetOS)
+		slog.Error(message)
+
+		singleError := models.SingleError{TargetName: name, Error: models.Error{Time: time.Now(), Level: models.Critical, Message: message}}
+		errorsCh <- singleError
 	}
 
 	resultsCh <- models.SingleResult{TargetName: name, LicenseInfo: licenseInfo}
@@ -111,16 +125,15 @@ func scanTarget(name string, target config.Target, resultsCh chan models.SingleR
 	slog.Info("Finished scanning.", "name", name)
 }
 
-func (s Scanner) collectResults(scanResult *models.ScanResult, resultsCh chan models.SingleResult, wg *sync.WaitGroup) {
-	defer wg.Done()
-	i := 0
-
+func (s Scanner) collectResults(scanResult *models.ScanResult) {
 	for singleResult := range resultsCh {
 		scanResult.Results[singleResult.TargetName] = singleResult.LicenseInfo
-		i++
-		if i == len(s.Targets) {
-			break
-		}
+	}
+}
+
+func (s Scanner) collectErrors(scanResult *models.ScanResult) {
+	for scanError := range errorsCh {
+		scanResult.Errors[scanError.TargetName] = scanError.Error
 	}
 }
 
