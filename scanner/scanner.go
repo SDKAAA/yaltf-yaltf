@@ -112,6 +112,30 @@ func scanTarget(name string, target config.Target) {
 		}
 
 		parseRPM(string(output), licenseInfo)
+	case "debian", "ubuntu":
+		message := fmt.Sprintf("Debian based OSs are not supported yet: %s", targetOS)
+		slog.Error(message)
+
+		singleError := models.SingleError{TargetName: name, Error: models.Error{Time: time.Now(), Level: models.Critical, Message: message}}
+		errorsCh <- singleError
+	case "windows":
+		message := fmt.Sprintf("Detected OS: %s", targetOS)
+		slog.Info(message)
+
+		output, err := runCommand(client, `foreach ($UKey in 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*','HKLM:\SOFTWARE\Wow6432node\Microsoft\Windows\CurrentVersion\Uninstall\*','HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*','HKCU:\SOFTWARE\Wow6432node\Microsoft\Windows\CurrentVersion\Uninstall\*'){foreach ($Product in (Get-ItemProperty $UKey -ErrorAction SilentlyContinue)){if($Product.DisplayName -and $Product.SystemComponent -ne 0){$Product.DisplayName + "|&|" + $Product.DisplayVersion}}}`)
+
+		if err != nil {
+			slog.Error("Failed to query packages.")
+			return
+		}
+
+		parseWIN(string(output), licenseInfo)
+	case "macos":
+		message := fmt.Sprintf("MacOS is not supported yet: %s", targetOS)
+		slog.Error(message)
+
+		singleError := models.SingleError{TargetName: name, Error: models.Error{Time: time.Now(), Level: models.Critical, Message: message}}
+		errorsCh <- singleError
 	default:
 		message := fmt.Sprintf("Unsupported OS: %s", targetOS)
 		slog.Error(message)
@@ -159,8 +183,21 @@ func getTargetOS(client *ssh.Client) string {
 	output, err := runCommand(client, "cat /etc/os-release")
 
 	if err != nil {
-		slog.Error("Failed to read /etc/os-release.", "error", err.Error())
-		return "Unknown"
+		// check for windows
+		output, err2 := runCommand(client, "systeminfo")
+		if err2 != nil {
+			// TODO check for mac else unknown
+			slog.Error("Unknown OS.", "error", err2.Error())
+			return "Unknown"
+		}
+		lines := strings.Split(string(output), "\n")
+		for _, line := range lines {
+			if strings.Contains(line, "Windows") {
+				// slog.Info("Found Windows OS")
+				return "windows"
+			}
+		}
+
 	}
 
 	lines := strings.Split(string(output), "\n")
