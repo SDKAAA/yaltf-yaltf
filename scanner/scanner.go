@@ -24,7 +24,8 @@ import (
 )
 
 type Scanner struct {
-	Targets map[string]config.Target
+	Targets     map[string]config.Target
+	VersionOnly bool
 }
 
 var wg sync.WaitGroup
@@ -35,9 +36,14 @@ var errorsCh chan models.SingleError
 func (s Scanner) Scan() error {
 	scanResult := models.ScanResult{
 		Version:   config.Version,
+		ScanMode:  "License",
 		ScannedAt: time.Now().Format("2006-01-02T15:04:05"),
 		Results:   make(models.LicenseInfos),
 		Errors:    make(models.TargetErrors),
+	}
+
+	if s.VersionOnly {
+		scanResult.ScanMode = "Version"
 	}
 
 	resultsCh = make(chan models.SingleResult, len(s.Targets))
@@ -45,7 +51,7 @@ func (s Scanner) Scan() error {
 
 	for name, target := range s.Targets {
 		wg.Add(1)
-		go scanTarget(name, target)
+		go scanTarget(name, target, s.VersionOnly)
 	}
 
 	go s.collectResults(&scanResult)
@@ -57,7 +63,7 @@ func (s Scanner) Scan() error {
 	return nil
 }
 
-func scanTarget(name string, target config.Target) {
+func scanTarget(name string, target config.Target, versionOnly bool) {
 	defer wg.Done()
 
 	slog.Info("Scanning target.", "name", name)
@@ -104,7 +110,13 @@ func scanTarget(name string, target config.Target) {
 		message := fmt.Sprintf("Detected OS: %s", targetOS)
 		slog.Info(message)
 
-		output, err := runCommand(client, `rpm -qa --queryformat "%{NAME} %{LICENSE}\n"`)
+		rpm_cmd := `rpm -qa --queryformat "%{NAME} %{LICENSE}\n"`
+
+		if versionOnly {
+			rpm_cmd = `rpm -qa --queryformat "%{NAME} %{VERSION}\n"`
+		}
+
+		output, err := runCommand(client, rpm_cmd)
 
 		if err != nil {
 			slog.Error("Failed to query packages.")
@@ -116,6 +128,15 @@ func scanTarget(name string, target config.Target) {
 		message := fmt.Sprintf("Detected OS: %s", targetOS)
 		slog.Info(message)
 
+		dpkg_cmd := dpkg_name_lic
+
+		if versionOnly {
+			dpkg_cmd = `COLUMNS=2000 dpkg -l | grep '^.[iufhwt]' | while read pState package pVer pArch pDesc; do
+printf "$package $pVer\n"
+done
+`
+		}
+
 		output, err := runCommand(client, dpkg_cmd)
 
 		if err != nil {
@@ -124,6 +145,10 @@ func scanTarget(name string, target config.Target) {
 		}
 
 		parseDPKG(string(output), licenseInfo)
+
+		if versionOnly {
+			break
+		}
 
 		failed := 0
 		for _, license := range licenseInfo {

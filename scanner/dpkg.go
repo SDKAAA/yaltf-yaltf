@@ -3,7 +3,7 @@ package scanner
 // Compacted form of the code developed by Daniel Alder
 // https://github.com/daald/dpkg-licenses
 
-var dpkg_cmd = `
+var dpkg_name_lic = `
 set -e
 
 machine_readable () {

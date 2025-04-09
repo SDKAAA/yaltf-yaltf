@@ -21,7 +21,8 @@ import (
 )
 
 type ScanCmd struct {
-	localhost bool
+	localhost   bool
+	versionOnly bool
 }
 
 func (*ScanCmd) Name() string { return "scan" }
@@ -36,6 +37,7 @@ func (*ScanCmd) Usage() string {
 
 func (p *ScanCmd) SetFlags(f *flag.FlagSet) {
 	f.BoolVar(&p.localhost, "localhost", false, "Scan localhost only.")
+	f.BoolVar(&p.versionOnly, "only-version", false, "Scan package name and version only.")
 }
 
 func (p *ScanCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
@@ -54,7 +56,8 @@ func (p *ScanCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) 
 	targets := config.Conf.Targets
 
 	s := scanner.Scanner{
-		Targets: targets,
+		Targets:     targets,
+		VersionOnly: p.versionOnly,
 	}
 
 	if p.localhost {

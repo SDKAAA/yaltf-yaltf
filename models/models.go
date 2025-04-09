@@ -63,6 +63,7 @@ type SingleError struct {
 
 type ScanResult struct {
 	Version   string       `json:"version"`
+	ScanMode  string       `json:"scanMode"`
 	ScannedAt string       `json:"scannedAt"`
 	Results   LicenseInfos `json:"results"`
 	Errors    TargetErrors `json:"errors,omitempty"`
