@@ -65,5 +65,5 @@ type ScanResult struct {
 	Version   string       `json:"version"`
 	ScannedAt string       `json:"scannedAt"`
 	Results   LicenseInfos `json:"results"`
-	Errors    TargetErrors `json:"errors,omitempty"`
+	Errors    Errors       `json:"errors,omitempty"`
 }
