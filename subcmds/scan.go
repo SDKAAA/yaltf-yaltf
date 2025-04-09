@@ -37,7 +37,7 @@ func (*ScanCmd) Usage() string {
 
 func (p *ScanCmd) SetFlags(f *flag.FlagSet) {
 	f.BoolVar(&p.localhost, "localhost", false, "Scan localhost only.")
-	f.BoolVar(&p.versionOnly, "only-version", false, "Scan package name and version only.")
+	f.BoolVar(&p.versionOnly, "version-only", false, "Scan package name and version only.")
 }
 
 func (p *ScanCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
