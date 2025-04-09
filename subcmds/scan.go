@@ -51,7 +51,7 @@ func (p *ScanCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) 
 		os.Exit(1)
 	}
 
-	logging.InfoLog.Print("Start scanning.")
+	logging.InfoLog.Print("Scanning started.")
 
 	targets := config.Conf.Targets
 
@@ -67,9 +67,9 @@ func (p *ScanCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) 
 	}
 
 	if p.versionOnly {
-		logging.InfoLog.Print("Scan for versions finished.")
+		logging.InfoLog.Print("Scanning for versions on all targets finished.")
 	} else {
-		logging.InfoLog.Print("Scan for licenses finished.")
+		logging.InfoLog.Print("Scanning for licenses on all targets finished.")
 	}
 
 	return subcommands.ExitSuccess

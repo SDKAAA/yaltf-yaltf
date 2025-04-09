@@ -181,7 +181,7 @@ done
 
 			parseWIN(string(output), licenseInfo)
 		} else {
-			message := fmt.Sprintf("Windows OS is not supported for Licenses Scanning: %s", targetOS)
+			message := "Windows OS is not supported for Licenses Scanning."
 			slog.Error(message)
 
 			singleError := models.SingleError{TargetName: name, Error: models.Error{Time: time.Now(), Level: models.Critical, Message: message}}
@@ -230,7 +230,8 @@ func runCommand(client *ssh.Client, command string) ([]byte, error) {
 	output, err := session.Output(command)
 
 	if err != nil {
-		slog.Error("failed to start command", "command", command, "error", err)
+		// Removing the logging here because it is handled at the otehr side.
+		// 	slog.Error("failed to start command", "command", command, "error", err)
 		return nil, err
 	}
 
