@@ -51,8 +51,10 @@ type Error struct {
 	Message string     `json:"message"`
 }
 
-// Errors holds target, Error pairs
-type Errors map[string]Error
+type Errors []Error
+
+// TargetErrors holds all errors occurred on targets
+type TargetErrors map[string]Errors
 
 type SingleError struct {
 	TargetName string
@@ -63,5 +65,5 @@ type ScanResult struct {
 	Version   string       `json:"version"`
 	ScannedAt string       `json:"scannedAt"`
 	Results   LicenseInfos `json:"results"`
-	Errors    Errors       `json:"errors,omitempty"`
+	Errors    TargetErrors `json:"errors,omitempty"`
 }

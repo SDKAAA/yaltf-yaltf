@@ -47,3 +47,22 @@ func parseWIN(stdout string, licenseInfo models.LicenseInfo) {
 		licenseInfo[name] = license
 	}
 }
+
+func parseDPKG(stdout string, licenseInfo models.LicenseInfo) {
+	lines := strings.Split(stdout, "\n")
+
+	for _, line := range lines {
+		// Examples for line:
+		// busybox 1:1.35.0-4+b3 unknown
+		// bzip2 1.0.8-5+b1 BSD-variant GPL-2
+		// ca-certificates 20230311 GPL-2+ MPL-2.0
+		trimmed := strings.TrimSpace(line)
+		name, license, found := strings.Cut(trimmed, " ")
+
+		if !found {
+			continue
+		}
+
+		licenseInfo[name] = license
+	}
+}

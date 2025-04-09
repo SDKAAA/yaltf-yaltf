@@ -37,7 +37,7 @@ func (s Scanner) Scan() error {
 		Version:   config.Version,
 		ScannedAt: time.Now().Format("2006-01-02T15:04:05"),
 		Results:   make(models.LicenseInfos),
-		Errors:    make(models.Errors),
+		Errors:    make(models.TargetErrors),
 	}
 
 	resultsCh = make(chan models.SingleResult, len(s.Targets))
@@ -113,11 +113,31 @@ func scanTarget(name string, target config.Target) {
 
 		parseRPM(string(output), licenseInfo)
 	case "debian", "ubuntu":
-		message := fmt.Sprintf("Debian based OSs are not supported yet: %s", targetOS)
-		slog.Error(message)
+		message := fmt.Sprintf("Detected OS: %s", targetOS)
+		slog.Info(message)
 
-		singleError := models.SingleError{TargetName: name, Error: models.Error{Time: time.Now(), Level: models.Critical, Message: message}}
-		errorsCh <- singleError
+		output, err := runCommand(client, dpkg_cmd)
+
+		if err != nil {
+			slog.Error("Failed to query packages.")
+			return
+		}
+
+		parseDPKG(string(output), licenseInfo)
+
+		failed := 0
+		for _, license := range licenseInfo {
+			if license == "unknown" {
+				failed += 1
+			}
+		}
+
+		warningMsg := fmt.Sprintf("Failed to identify licenses of %d out of %d packages (%.0f%% accuracy).", failed, len(licenseInfo), 100.0*(1-float64(failed)/float64(len(licenseInfo))))
+
+		if failed > 0 {
+			singleError := models.SingleError{TargetName: name, Error: models.Error{Time: time.Now(), Level: models.Warning, Message: warningMsg}}
+			errorsCh <- singleError
+		}
 	case "windows":
 		message := fmt.Sprintf("Detected OS: %s", targetOS)
 		slog.Info(message)
@@ -157,7 +177,7 @@ func (s Scanner) collectResults(scanResult *models.ScanResult) {
 
 func (s Scanner) collectErrors(scanResult *models.ScanResult) {
 	for scanError := range errorsCh {
-		scanResult.Errors[scanError.TargetName] = scanError.Error
+		scanResult.Errors[scanError.TargetName] = append(scanResult.Errors[scanError.TargetName], scanError.Error)
 	}
 }
 
