@@ -11,6 +11,7 @@ import (
 	"flag"
 	"log/slog"
 	"os"
+	"time"
 
 	"github.com/yaltf/yaltf/config"
 	"github.com/yaltf/yaltf/logging"
@@ -57,6 +58,7 @@ func (p *ScanCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) 
 
 	s := scanner.Scanner{
 		Targets:     targets,
+		Timeout:     time.Duration(config.Conf.Common.SSHTimeout),
 		VersionOnly: p.versionOnly,
 	}
 

@@ -25,6 +25,7 @@ import (
 
 type Scanner struct {
 	Targets     map[string]config.Target
+	Timeout     time.Duration
 	VersionOnly bool
 }
 
@@ -51,7 +52,7 @@ func (s Scanner) Scan() error {
 
 	for name, target := range s.Targets {
 		wg.Add(1)
-		go scanTarget(name, target, s.VersionOnly)
+		go scanTarget(name, target, s.Timeout, s.VersionOnly)
 	}
 
 	go s.collectResults(&scanResult)
@@ -63,7 +64,7 @@ func (s Scanner) Scan() error {
 	return nil
 }
 
-func scanTarget(name string, target config.Target, versionOnly bool) {
+func scanTarget(name string, target config.Target, timeout time.Duration, versionOnly bool) {
 	defer wg.Done()
 
 	if versionOnly {
@@ -93,7 +94,7 @@ func scanTarget(name string, target config.Target, versionOnly bool) {
 			ssh.PublicKeys(key),
 		},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-		Timeout:         5 * time.Second,
+		Timeout:         timeout * time.Second,
 	}
 
 	address := net.JoinHostPort(target.Host, target.Port)

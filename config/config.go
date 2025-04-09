@@ -16,6 +16,7 @@ type Target struct {
 
 type CommonOpts struct {
 	SSHKeyPath string `toml:"sshkeypath"`
+	SSHTimeout int    `toml:"timeout_seconds"`
 }
 
 // Targets represents the computers that will be scanned.
