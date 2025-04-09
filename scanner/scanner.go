@@ -104,7 +104,8 @@ func scanTarget(name string, target config.Target) {
 		message := fmt.Sprintf("Detected OS: %s", targetOS)
 		slog.Info(message)
 
-		output, err := runCommand(client, `rpm -qa --queryformat "%{NAME} %{LICENSE}\n"`)
+		// output, err := runCommand(client, `rpm -qa --queryformat "%{NAME} %{LICENSE}\n"`)
+		output, err := runCommand(client, `rpm -qa --queryformat "%{NAME}|&|%{LICENSE}|&|%{VERSION}\n"`)
 
 		if err != nil {
 			slog.Error("Failed to query packages.")

@@ -20,12 +20,22 @@ func parseRPM(stdout string, licenseInfo models.LicenseInfo) {
 		// samba-common GPL-3.0-or-later AND LGPL-3.0-or-later
 		// intel-audio-firmware LicenseRef-Callaway-Redistributable-no-modification-permitted
 		trimmed := strings.TrimSpace(line)
-		name, license, found := strings.Cut(trimmed, " ")
-
-		if !found {
+		// name, license, found := strings.Cut(trimmed, " ")
+		results := strings.Split(trimmed, "|&|")
+		if len(results) > 1 {
+			// // message := fmt.Sprintf("results: %s, %v", results, len(results))
+			// // slog.Info(message)
+			name := results[0]
+			license := results[1]
+			// version := results[2]
+			licenseInfo[name] = license
+		} else {
 			continue
 		}
 
-		licenseInfo[name] = license
+		// if !found {
+		// 	continue
+		// }
+
 	}
 }

@@ -28,6 +28,8 @@ func WriteResults(scanResult *models.ScanResult) {
 	}
 
 	fileName := fmt.Sprintf("%s.json", scanResult.ScannedAt)
+	// fileName := fmt.Sprintf("%s-Licenses.json", scanResult.ScannedAt)
+	// fileName := fmt.Sprintf("%s-Versions.json", scanResult.ScannedAt)
 
 	err = os.Mkdir("results", os.ModePerm)
 
