@@ -66,7 +66,11 @@ func (s Scanner) Scan() error {
 func scanTarget(name string, target config.Target, versionOnly bool) {
 	defer wg.Done()
 
-	slog.Info("Scanning target.", "name", name)
+	if versionOnly {
+		slog.Info("Scanning target for Version Only.", "name", name)
+	} else {
+		slog.Info("Scanning target for Licenses.", "name", name)
+	}
 
 	keyPath := os.ExpandEnv(config.Conf.Common.SSHKeyPath)
 	keyBytes, err := os.ReadFile(keyPath)
@@ -166,15 +170,23 @@ done
 	case "windows":
 		message := fmt.Sprintf("Detected OS: %s", targetOS)
 		slog.Info(message)
+		if versionOnly {
+			output, err := runCommand(client, `foreach ($UKey in 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*','HKLM:\SOFTWARE\Wow6432node\Microsoft\Windows\CurrentVersion\Uninstall\*','HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*','HKCU:\SOFTWARE\Wow6432node\Microsoft\Windows\CurrentVersion\Uninstall\*'){foreach ($Product in (Get-ItemProperty $UKey -ErrorAction SilentlyContinue)){if($Product.DisplayName -and $Product.SystemComponent -ne 0){$Product.DisplayName + "|&|" + $Product.DisplayVersion}}}`)
 
-		output, err := runCommand(client, `foreach ($UKey in 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*','HKLM:\SOFTWARE\Wow6432node\Microsoft\Windows\CurrentVersion\Uninstall\*','HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*','HKCU:\SOFTWARE\Wow6432node\Microsoft\Windows\CurrentVersion\Uninstall\*'){foreach ($Product in (Get-ItemProperty $UKey -ErrorAction SilentlyContinue)){if($Product.DisplayName -and $Product.SystemComponent -ne 0){$Product.DisplayName + "|&|" + $Product.DisplayVersion}}}`)
+			if err != nil {
+				slog.Error("Failed to query packages.")
+				return
+			}
 
-		if err != nil {
-			slog.Error("Failed to query packages.")
-			return
+			parseWIN(string(output), licenseInfo)
+		} else {
+			message := fmt.Sprintf("Windows OS is not supported for Licenses Scanning: %s", targetOS)
+			slog.Error(message)
+
+			singleError := models.SingleError{TargetName: name, Error: models.Error{Time: time.Now(), Level: models.Critical, Message: message}}
+			errorsCh <- singleError
 		}
 
-		parseWIN(string(output), licenseInfo)
 	case "macos":
 		message := fmt.Sprintf("MacOS is not supported yet: %s", targetOS)
 		slog.Error(message)

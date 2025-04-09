@@ -66,7 +66,11 @@ func (p *ScanCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}) 
 		s.Scan()
 	}
 
-	logging.InfoLog.Print("Scan finished.")
+	if p.versionOnly {
+		logging.InfoLog.Print("Scan for versions finished.")
+	} else {
+		logging.InfoLog.Print("Scan for licenses finished.")
+	}
 
 	return subcommands.ExitSuccess
 }
