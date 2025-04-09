@@ -101,6 +101,7 @@ func scanTarget(name string, target config.Target, versionOnly bool) {
 	if err != nil {
 		slog.Error("Connection failed.", "host", target.Host, "error", err)
 		resultsCh <- models.SingleResult{TargetName: name}
+		errorsCh <- models.SingleError{TargetName: name, Error: models.Error{Time: time.Now(), Level: models.Critical, Message: err.Error()}}
 		return
 	}
 
